@@ -5,6 +5,12 @@
 <br>
 <img src="https://github.com/OG-Anorine/Tempest-7.5-E-Paper-Display/blob/master/photos/IMG_6607.jpeg" width=40% height=40%>
 <h1>Versions</h1>
+  <h2>Version 2.2</h2>
+    <ul>
+		<li>New error handling for non 200 status from APIs</li>
+		<li>New error screens for missing JSON keys and non-200 status</li>
+		<li>New flame icons for Extreme Heat Warnings to replace standard hazard triangles</li>
+	</ul>
   <h2>Version 2.1.1</h2>
     <ul>
 		<li>Corrected icon logic for special weather statement vs watch/warnings</li>
