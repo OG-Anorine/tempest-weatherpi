@@ -54,7 +54,8 @@ params = {
     "lat": latitude,
     "lon": longitude,
     "include_eclipse": "true",
-    "include_special": "true"
+    "include_special": "true",
+    "include_rise_set": "true"
 }
 
 headers = {
@@ -68,10 +69,14 @@ params_p1 = {
     "lat": latitude,
     "lon": longitude,
     "include_eclipse": "true",
-    "include_special": "true"
+    "include_special": "true",
+    "include_rise_set": "true"
 }
 
 moon_bp1_url = 'https://aa.usno.navy.mil/api/rstt/oneday?date=' + (moon_date_p1.strftime("%Y-%m-%d")) + '&coords=' + latitude + ', ' + longitude + '&tz=' + tz_offset + '&dst=true'
+
+class HTTPError(Exception):
+    pass
 
 # define funciton for writing image and sleeping for 5 min.
 def write_to_screen(image, sleep_seconds):
@@ -87,7 +92,7 @@ def write_to_screen(image, sleep_seconds):
     # Sleep
     time.sleep(2)
     epd.sleep()
-    print(str(datetime.now()) + ' Sleeping for ' + str(sleep_seconds) +'.')
+    print(str(datetime.now()) + ' Sleeping for ' + str(sleep_seconds) +' seconds.')
     time.sleep(sleep_seconds)
 
 # define function for displaying error
@@ -101,7 +106,17 @@ def display_error(error_source):
         error_image_file = 'error.png'
         error_image.save(os.path.join(picdir, error_image_file))
         error_image.close()
-        write_to_screen(error_image_file, 600)
+        write_to_screen(error_image_file, 300)
+    if error_source == 'HTTP':
+        error_image = Image.open(os.path.join(picdir, 'http_error_template.png'))
+        # Initialize the drawing
+        draw = ImageDraw.Draw(error_image)
+        current_time = datetime.now().strftime('%H:%M')
+        draw.text((590, 430), 'Last Refresh: ' + str(current_time), font = font23, fill=black)
+        error_image_file = 'error.png'
+        error_image.save(os.path.join(picdir, error_image_file))
+        error_image.close()
+        write_to_screen(error_image_file, 1800)        
     else:
         error_image = Image.open(os.path.join(picdir, 'error_template.png'))
         # Initialize the drawing
@@ -154,17 +169,6 @@ def create_feelslike_image(feels_file=None, paste_icon=False):
 
     return center_feels
 
-#Convert UTC time following DST
-def convert_utc(iso_utc):
-    # Parse naive UTC datetime
-    naive_utc = datetime.strptime(iso_utc, "%Y-%m-%dT%H:%M:%SZ")
-    # Localize properly to UTC
-    utc_dt = pytz.UTC.localize(naive_utc)
-    # Convert time
-    tzone = pytz.timezone(pytzone)
-    conv_time = utc_dt.astimezone(tzone)
-    return conv_time
-
 # Set the fonts
 font20 = ImageFont.truetype(os.path.join(fontdir, 'Font.ttc'), 20)
 font22 = ImageFont.truetype(os.path.join(fontdir, 'Font.ttc'), 22)
@@ -199,36 +203,35 @@ while True:
             #Tempest API request
             wx_response = requests.get(wx_url, timeout = tout)
             wxdata = wx_response.json()
-            wx_check = (wx_response.status_code == requests.codes.ok)
+            wx_check = wx_response.status_code
             print(str(datetime.now()) + ' Attempting to connect to Tempest WX. Status code: ' + str(wx_response.status_code))
-            
+
             #NWS API request
             nws_response = requests.get(nws_url, timeout = tout)
             nws = nws_response.json()
-            nws_check = (nws_response.status_code == requests.codes.ok)
+            nws_check = nws_response.status_code
             print(str(datetime.now()) + ' Attempting to connect to NWS API. Status code: ' + str(nws_response.status_code))
-            
-            #Lunar API requests
+
+            #Moon API request
             moon_limit = datetime.now().time()
-            if moon_limit.minute <= 6 or phase == None:
+            moon_hour = (moon_limit.hour % 2)
+            if (moon_hour == 0 and moon_limit.minute <= 4) or phase == None:
                 moon_response = requests.get(moon_url, headers=headers, params=params, timeout = tout)
                 moon_api = moon_response.json()
-                moon_check = (moon_response.status_code == requests.codes.ok)
+                moon_check = moon_response.status_code
                 print(str(datetime.now()) + ' Attempting to connect to Free Astro API. Status code: ' + str(moon_response.status_code))
                 #Connect to US Naval Observatory
                 moon_b_response = requests.get(moon_b_url, timeout = tout)
                 moon_b_api = moon_b_response.json()
-                moon_b_check = (moon_b_response.status_code == requests.codes.ok)                
+                moon_b_check = moon_b_response.status_code
                 print(str(datetime.now()) + ' Attempting to connect to US Naval Observatory API. Status code: ' + str(moon_b_response.status_code))
-                
-            #If API has too many requests, sleep for 30min to slow down hits. Did not include Free Astro due to backup availability, NWS is not needed
-            if wx_response.status_code == 429:
-                time.sleep(1800)
-                
-            elif wx_check == True and nws_check == True and moon_check == True:
+
+            if wx_check == 200 and nws_check == 200 and moon_check == 200 and moon_b_check == 200:
                 print(str(datetime.now()) + ' All API connections successful.')
                 error_connect = None
-                
+            else:
+                raise HTTPError("Request failed.")
+
         except requests.Timeout:
             # Call function to display connection error
             print(str(datetime.now()) + ' Connection error.')
@@ -237,7 +240,7 @@ while True:
             from subprocess import call
             ec += 1
             #Reboot screen after 10 connection attempts
-            if ec == 5 and reboot == '0':
+            if ec == 10 and reboot == '0':
                 file = open("reboot.txt", "w")
                 file.write(str(1))
                 file.close()
@@ -252,11 +255,14 @@ while True:
                 file.close()
                 #from subprocess import call
                 call("sudo shutdown -h now", shell=True)
+        except HTTPError:
+            print(str(datetime.now()) + ' HTTP error.')
+            display_error('HTTP')
 
     error = None
     while error == None:
             # Check status of code request
-        if wx_check == True and nws_check == True and moon_check == True:
+        if wx_check == 200 and nws_check == 200 and moon_check == 200 and moon_b_check == 200:
             try:
                 file = open("reboot.txt", "w")
                 file.write(str(0))
@@ -347,7 +353,7 @@ while True:
             except KeyError:
                 print(str(datetime.now()) + ' Tempest API Key Error.')
                 display_error('API')
-                
+
             #Get Severe weather data from NWS
             alert = None
             string_event = None
@@ -356,6 +362,7 @@ while True:
                 event = alert['event']
                 urgency = alert['urgency']
                 severity = alert['severity']
+                #swstitle = alert['parameters']['NWSheadline']
             except IndexError:
                 alert = None
 
@@ -494,7 +501,7 @@ while True:
         template.paste(now_center, (12,175))
         w2d_file = 'w2d.png'
         w2d_image = Image.open(os.path.join(icondir, w2d_file))
-        template.paste(w2d_image, (155,176))
+        template.paste(w2d_image, (160,180))
     else:
         now_center = create_image((249, 35), 'white', string_report, font23, 'black')
         template.paste(now_center, (12,175))
@@ -684,6 +691,9 @@ while True:
             if 'Statement' in string_event:
                 x = (warning_img.width // 2) + 25
                 alert_file = 'info.png'
+            elif 'Extreme Heat' in string_event:
+                x = (warning_img.width // 2)
+                alert_file = 'extreme.png'
             else:
                 x = (warning_img.width // 2)
                 alert_file = 'warning.png'
@@ -706,7 +716,7 @@ while True:
 
             # For non-Special, also paste an icon at the right end of the text
             #if 'Watch' or 'Warning' in string_event:
-            if alert_file == 'warning.png':
+            if alert_file == 'warning.png' or alert_file == 'extreme.png':
                 right_icon_x = x + (text_width // 2) + 10  # 10 px space right
                 warning_img.paste(alert_image, (right_icon_x, icon_y), alert_image)
 
