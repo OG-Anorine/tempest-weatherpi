@@ -201,30 +201,47 @@ while True:
     while error_connect == True:
         try:
             #Tempest API request
-            wx_response = requests.get(wx_url, timeout = tout)
-            wxdata = wx_response.json()
-            wx_check = wx_response.status_code
-            print(str(datetime.now()) + ' Attempting to connect to Tempest WX. Status code: ' + str(wx_response.status_code))
-
+            try:
+                wx_response = requests.get(wx_url, timeout = tout)
+                wxdata = wx_response.json()
+                wx_check = wx_response.status_code
+                print(str(datetime.now()) + ' Attempting to connect to Tempest WX. Status code: ' + str(wx_response.status_code))
+            except requests.exceptions.RequestException as e:
+                    print(str(datetime.now()) + f" An error occurred: {e}")
+                    raise HTTPError("Request failed.")
+                
             #NWS API request
-            nws_response = requests.get(nws_url, timeout = tout)
-            nws = nws_response.json()
-            nws_check = nws_response.status_code
-            print(str(datetime.now()) + ' Attempting to connect to NWS API. Status code: ' + str(nws_response.status_code))
-
+            try:
+                nws_response = requests.get(nws_url, timeout = tout)
+                nws = nws_response.json()
+                nws_check = nws_response.status_code
+                print(str(datetime.now()) + ' Attempting to connect to NWS API. Status code: ' + str(nws_response.status_code))
+            except requests.exceptions.RequestException as e:
+                    print(str(datetime.now()) + f" An error occurred: {e}")
+                    raise HTTPError("Request failed.")
+                
             #Moon API request
             moon_limit = datetime.now().time()
             moon_hour = (moon_limit.hour % 2)
             if (moon_hour == 0 and moon_limit.minute <= 4) or phase == None:
-                moon_response = requests.get(moon_url, headers=headers, params=params, timeout = tout)
-                moon_api = moon_response.json()
-                moon_check = moon_response.status_code
-                print(str(datetime.now()) + ' Attempting to connect to Free Astro API. Status code: ' + str(moon_response.status_code))
+                try:
+                    moon_response = requests.get(moon_url, headers=headers, params=params, timeout = tout)
+                    moon_api = moon_response.json()
+                    moon_check = moon_response.status_code
+                    print(str(datetime.now()) + ' Attempting to connect to Free Astro API. Status code: ' + str(moon_response.status_code))
+                except requests.exceptions.RequestException as e:
+                    print(str(datetime.now()) + f" An error occurred: {e}")
+                    raise HTTPError("Request failed.")
+                    
                 #Connect to US Naval Observatory
-                moon_b_response = requests.get(moon_b_url, timeout = tout)
-                moon_b_api = moon_b_response.json()
-                moon_b_check = moon_b_response.status_code
-                print(str(datetime.now()) + ' Attempting to connect to US Naval Observatory API. Status code: ' + str(moon_b_response.status_code))
+                try:
+                    moon_b_response = requests.get(moon_b_url, timeout = tout)
+                    moon_b_api = moon_b_response.json()
+                    moon_b_check = moon_b_response.status_code
+                    print(str(datetime.now()) + ' Attempting to connect to US Naval Observatory API. Status code: ' + str(moon_b_response.status_code))
+                except requests.exceptions.RequestException as e:
+                    print(str(datetime.now()) + f" An error occurred: {e}")
+                    raise HTTPError("Request failed.")
 
             if wx_check == 200 and nws_check == 200 and moon_check == 200 and moon_b_check == 200:
                 print(str(datetime.now()) + ' All API connections successful.')
