@@ -207,8 +207,8 @@ while True:
                 wx_check = wx_response.status_code
                 print(str(datetime.now()) + ' Attempting to connect to Tempest WX. Status code: ' + str(wx_response.status_code))
             except requests.exceptions.RequestException as e:
-                    print(str(datetime.now()) + f" An error occurred: {e}")
-                    raise HTTPError("Request failed.")
+                    print(str(datetime.now()) + f" Tempest WX error occurred: {e}")
+                    raise HTTPError("Tempest WX request failed.")
                 
             #NWS API request
             try:
@@ -217,8 +217,8 @@ while True:
                 nws_check = nws_response.status_code
                 print(str(datetime.now()) + ' Attempting to connect to NWS API. Status code: ' + str(nws_response.status_code))
             except requests.exceptions.RequestException as e:
-                    print(str(datetime.now()) + f" An error occurred: {e}")
-                    raise HTTPError("Request failed.")
+                    print(str(datetime.now()) + f" NWS error occurred: {e}")
+                    raise HTTPError("NWS request failed.")
                 
             #Moon API request
             moon_limit = datetime.now().time()
@@ -230,8 +230,8 @@ while True:
                     moon_check = moon_response.status_code
                     print(str(datetime.now()) + ' Attempting to connect to Free Astro API. Status code: ' + str(moon_response.status_code))
                 except requests.exceptions.RequestException as e:
-                    print(str(datetime.now()) + f" An error occurred: {e}")
-                    raise HTTPError("Request failed.")
+                    print(str(datetime.now()) + f" Free Astro error occurred: {e}")
+                    raise HTTPError("Free Astro request failed.")
                     
                 #Connect to US Naval Observatory
                 try:
@@ -240,8 +240,8 @@ while True:
                     moon_b_check = moon_b_response.status_code
                     print(str(datetime.now()) + ' Attempting to connect to US Naval Observatory API. Status code: ' + str(moon_b_response.status_code))
                 except requests.exceptions.RequestException as e:
-                    print(str(datetime.now()) + f" An error occurred: {e}")
-                    raise HTTPError("Request failed.")
+                    print(str(datetime.now()) + f" USNO error occurred: {e}")
+                    raise HTTPError("USNO request failed.")
 
             if wx_check == 200 and nws_check == 200 and moon_check == 200 and moon_b_check == 200:
                 print(str(datetime.now()) + ' All API connections successful.')
