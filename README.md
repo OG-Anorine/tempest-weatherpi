@@ -8,6 +8,9 @@
   <h2>Version 2.3</h2>
     <ul>
 		<li>Resolved blinking screen when API/site is completely down, will now correctly display HTTP error screen</li>
+		<ul>
+			<li>Includes API specific logging in output</li>
+		</ul>
 	</ul>
   <h2>Version 2.2</h2>
     <ul>
